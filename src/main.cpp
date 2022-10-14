@@ -66,6 +66,9 @@ struct PerFrameData
 
 struct GLBuffer
 {
+    GLBuffer()
+    {
+    }
     GLBuffer(GLsizeiptr size, const void *data, GLbitfield flags)
     {
 
@@ -83,6 +86,9 @@ struct GLBuffer
 
 struct GLShader
 {
+    GLShader()
+    {
+    }
     GLShader(const char *fileName, GLenum type)
         : handle(glCreateShader(type))
     {
@@ -119,6 +125,9 @@ struct GLShader
 
 struct GLProgram
 {
+    GLProgram()
+    {
+    }
     GLProgram(const GLShader &shader1, const GLShader &shader2)
     {
         handle = glCreateProgram();
@@ -150,6 +159,9 @@ struct GLProgram
 
 struct GLTexture
 {
+    GLTexture()
+    {
+    }
     GLTexture(GLenum type_, const char *fileName)
         : type(type_)
     {
@@ -208,6 +220,9 @@ struct GLTexture
 
 struct GLMesh
 {
+    GLMesh()
+    {
+    }
     GLMesh(const uint32_t *indices, uint32_t indicesSize, const float *vertexData, uint32_t verticesSize)
         : numIndices(indicesSize / sizeof(uint32_t)), indicesBuffer(indicesSize, indices, 0), verticesBuffer(verticesSize, vertexData, 0)
     {
@@ -221,10 +236,9 @@ struct GLMesh
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, verticesBuffer.handle);
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(numIndices), GL_UNSIGNED_INT, nullptr);
     }
-
-    ~GLMesh()
+    void destroy()
     {
-        // glDeleteVertexArrays(1, &vao);
+        glDeleteVertexArrays(1, &vao);
     }
     GLuint vao;
     uint32_t numIndices;
@@ -239,10 +253,22 @@ struct VertexData
     vec2 tc;
 };
 
-int main()
+struct State
 {
-    const int width = 1280;
-    const int height = 720;
+    GLMesh mesh;
+    GLTexture albedo;
+    GLBuffer modelMat;
+    GLBuffer perFrameData;
+    GLProgram program;
+    int width;
+    int height;
+};
+
+void run()
+{
+    State state;
+    state.width = 1280;
+    state.height = 720;
     if (!glfwInit())
     {
         throw std::runtime_error("glfwInit failed");
@@ -253,7 +279,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     glfwWindowHint(GLFW_SAMPLES, 4);
-    auto window = glfwCreateWindow(width, height, "hello opengl", NULL, NULL);
+    auto window = glfwCreateWindow(state.width, state.height, "hello opengl", NULL, NULL);
     if (!window)
     {
         throw std::runtime_error("glfw create widnow failed!!");
@@ -274,9 +300,14 @@ int main()
     const GLsizeiptr kUniformBufferSize = sizeof(PerFrameData);
     GLBuffer perFrameDataBuffer(kUniformBufferSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBufferRange(GL_UNIFORM_BUFFER, 0, perFrameDataBuffer.handle, 0, kUniformBufferSize);
+    state.perFrameData = std::move(perFrameDataBuffer);
+
     GLShader vertex("assets/shaders/simple.vert", GL_VERTEX_SHADER);
     GLShader frag("assets/shaders/simple.frag", GL_FRAGMENT_SHADER);
     GLProgram program(vertex, frag);
+    vertex.destroy();
+    frag.destroy();
+    state.program = std::move(program);
 
     const aiScene *scene = aiImportFile("assets/models/helmet/DamagedHelmet.gltf", aiProcess_Triangulate);
     if (!scene || !scene->HasMeshes())
@@ -310,23 +341,23 @@ int main()
     const size_t kSizeVertices = sizeof(VertexData) * vertices.size();
 
     GLMesh mesh(indices.data(), (uint32_t)kSizeIndices, (float *)vertices.data(), (uint32_t)kSizeVertices);
-
+    state.mesh = std::move(mesh);
     GLTexture texAlbedo(GL_TEXTURE_2D, "assets/models/helmet/Default_albedo.jpg");
     glBindTextures(0, 1, &texAlbedo.handle);
+    state.albedo = std::move(texAlbedo);
 
     const mat4 m(1.0f);
     GLBuffer modelMatrices(sizeof(mat4), value_ptr(m), GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, modelMatrices.handle);
-
+    state.modelMat = std::move(modelMatrices);
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
 
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-        const float ratio = width / (float)height;
+        glfwGetFramebufferSize(window, &state.width, &state.height);
+        const float ratio = state.width / (float)state.height;
 
-        glViewport(0, 0, width, height);
+        glViewport(0, 0, state.width, state.height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         const mat4 p = glm::perspective(45.0f, ratio, 0.5f, 5000.0f);
         const vec3 eye = vec3(0.0f, 6.0f, 11.0f);
@@ -336,19 +367,30 @@ int main()
             .view = view,
             .proj = p,
             .cameraPos = eye};
-        glNamedBufferSubData(perFrameDataBuffer.handle, 0, kUniformBufferSize, &perFrameData);
+        glNamedBufferSubData(state.perFrameData.handle, 0, kUniformBufferSize, &perFrameData);
 
         const mat4 scale = glm::scale(mat4(1.0f), vec3(5.0f));
         const mat4 rot = glm::rotate(mat4(1.0f), glm::radians(90.0f), vec3(1.0f, 0.0f, 0.0f));
         const mat4 pos = glm::translate(mat4(1.0f), vec3(0.0f, 0.0f, -1.0f));
         const mat4 m = glm::rotate(scale * rot * pos, (float)glfwGetTime() * 0.1f, vec3(0.0f, 0.0f, 1.0f));
-        glNamedBufferSubData(modelMatrices.handle, 0, sizeof(mat4), value_ptr(m));
-        program.use();
-        mesh.draw();
+        glNamedBufferSubData(state.modelMat.handle, 0, sizeof(mat4), value_ptr(m));
+        state.program.use();
+        state.mesh.draw();
 
         glfwSwapBuffers(window);
     }
+    state.albedo.destroy();
+    state.perFrameData.destroy();
+    state.modelMat.destroy();
+    state.mesh.destroy();
+    state.program.destroy();
 
     glfwDestroyWindow(window);
     glfwTerminate();
+}
+
+int main()
+{
+    run();
+    return 0;
 }
