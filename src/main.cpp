@@ -16,6 +16,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
+#include "bitmap.h"
+
 using namespace glm;
 using namespace std;
 
@@ -56,6 +58,23 @@ uint8_t *genDefaultCheckerboardImage(int *width, int *height)
 
     return imgData;
 }
+
+struct Camera
+{
+    Camera()
+    {
+    }
+    Camera(vec3 pos, vec3 target, vec3 up, float fov, float ratio)
+        : position(pos)
+    {
+        viewMat = lookAt(pos, target, up);
+        perspectiveMat = perspective(fov, ratio, 0.1f, 1000.f);
+    }
+
+    vec3 position;
+    mat4 viewMat;
+    mat4 perspectiveMat;
+};
 
 struct PerFrameData
 {
@@ -199,6 +218,37 @@ struct GLTexture
             glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, numMipmaps - 1);
             glTextureParameteri(handle, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTextureParameteri(handle, GL_TEXTURE_MAX_ANISOTROPY, 16);
+            break;
+        }
+        case GL_TEXTURE_CUBE_MAP:
+        {
+            int w, h, comp;
+            const float *img = stbi_loadf(fileName, &w, &h, &comp, 3);
+            assert(img);
+            Bitmap in(w, h, comp, eBitmapFormat_Float, img);
+            const bool isEquirectangular = w == 2 * h;
+            Bitmap out = isEquirectangular ? convertEquirectangularMapToVerticalCross(in) : in;
+            stbi_image_free((void *)img);
+            Bitmap cubemap = convertVerticalCrossToCubeMapFaces(out);
+            const int numMipmaps = getNumMipMapLevels2D(cubemap.w_, cubemap.h_);
+            glTextureParameteri(handle, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTextureParameteri(handle, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTextureParameteri(handle, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+            glTextureParameteri(handle, GL_TEXTURE_BASE_LEVEL, 0);
+            glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, numMipmaps - 1);
+            glTextureParameteri(handle, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTextureParameteri(handle, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+            glTextureStorage2D(handle, numMipmaps, GL_RGB32F, cubemap.w_, cubemap.h_);
+            const uint8_t *data = cubemap.data_.data();
+
+            for (unsigned i = 0; i != 6; ++i)
+            {
+                glTextureSubImage3D(handle, 0, 0, 0, i, cubemap.w_, cubemap.h_, 1, GL_RGB, GL_FLOAT, data);
+                data += cubemap.w_ * cubemap.h_ * cubemap.comp_ * Bitmap::getBytesPerComponent(cubemap.fmt_);
+            }
+
+            glGenerateTextureMipmap(handle);
             break;
         }
 
@@ -346,10 +396,18 @@ void run()
     glBindTextures(0, 1, &texAlbedo.handle);
     state.albedo = std::move(texAlbedo);
 
+    GLTexture envMap(GL_TEXTURE_CUBE_MAP, "assets/environment/piazza_bologni_1k.hdr");
+    glBindTextures(5, 1, &envMap.handle);
+
     const mat4 m(1.0f);
     GLBuffer modelMatrices(sizeof(mat4), value_ptr(m), GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, modelMatrices.handle);
     state.modelMat = std::move(modelMatrices);
+
+    const vec3 eye = vec3(0.0f, 6.0f, 11.0f);
+    const vec3 target = vec3(0.0f, 4.0f, -1.0f);
+    Camera camera(eye, target, vec3(0.0, 1.0, 0.0f), 45.0f, state.width / (float)state.height);
+
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -360,12 +418,10 @@ void run()
         glViewport(0, 0, state.width, state.height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         const mat4 p = glm::perspective(45.0f, ratio, 0.5f, 5000.0f);
-        const vec3 eye = vec3(0.0f, 6.0f, 11.0f);
-        const vec3 target = vec3(0.0f, 4.0f, -1.0f);
-        const mat4 view = glm::lookAt(eye, target, vec3(0.0, 1.0, 0.0));
+        camera.perspectiveMat = std::move(p);
         const PerFrameData perFrameData = {
-            .view = view,
-            .proj = p,
+            .view = camera.viewMat,
+            .proj = camera.perspectiveMat,
             .cameraPos = eye};
         glNamedBufferSubData(state.perFrameData.handle, 0, kUniformBufferSize, &perFrameData);
 
