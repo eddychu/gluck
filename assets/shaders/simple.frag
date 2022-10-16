@@ -17,6 +17,6 @@ layout (binding=5) uniform samplerCube texEnvMap;
 
 
 void main() {
-	vec4 Kd = texture(texAlbedo, tc);
+    vec4 Kd = texture(texAlbedo, tc);
     out_FragColor = Kd;
 }

@@ -1,452 +1,343 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <stdexcept>
-#include <vector>
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
+#include <Core/Window.h>
+#include <Core/Mesh.h>
+#include <Core/Scene.h>
+#include <Core/Renderer.h>
+// struct VertexData
+// {
+//     vec3 pos;
+//     vec3 n;
+//     vec2 tc;
+// };
 
-#include <fstream>
-#include <sstream>
+// struct State
+// {
+//     GLCamera camera;
+//     GLMesh mesh;
+//     GLTexture albedo;
+//     GLBuffer modelMat;
+//     GLBuffer perFrameData;
+//     GLProgram program;
+//     GLFWwindow *window;
+//     int width;
+//     int height;
+// };
 
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include <assimp/cimport.h>
-#include <assimp/version.h>
+// struct GLSkybox
+// {
+//     GLSkybox(const char *envMapFile = "assets/environment/piazza_bologni_1k.hdr")
+//         : envMap(GL_TEXTURE_CUBE_MAP, envMapFile)
+//     {
+//         glCreateVertexArrays(1, &vao);
+//         glBindTextures(0, 1, &envMap.handle);
+//     }
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image.h>
+//     void destroy()
+//     {
+//         glDeleteVertexArrays(1, &vao);
+//         envMap.destroy();
+//         cubeVertexShader.destroy();
+//         cubeFragmentShader.destroy();
+//         program.destroy();
+//     }
 
-#include "bitmap.h"
+//     void draw(State &state)
+//     {
+//         int width, height;
+//         glfwGetFramebufferSize(state.window, &state.width, &state.height);
+//         const float ratio = state.width / (float)state.height;
 
-using namespace glm;
-using namespace std;
+//         glViewport(0, 0, state.width, state.height);
+//         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-int getNumMipMapLevels2D(int w, int h)
-{
-    int levels = 1;
-    while ((w | h) >> levels)
-        levels += 1;
-    return levels;
-}
+//         const vec3 eye = vec3(0.0f, 6.0f, 11.0f);
+//         const vec3 target = vec3(0.0f, 4.0f, -1.0f);
+//         Camera camera(eye, target, vec3(0.0, 1.0, 0.0f), 45.0f, state.width / (float)state.height);
+//         const mat4 p = glm::perspective(45.0f, ratio, 0.5f, 5000.0f);
+//         state.camera.perspectiveMat = std::move(p);
+//         const PerFrameData perFrameData = {
+//             .view = camera.viewMat,
+//             .proj = camera.perspectiveMat,
+//             .cameraPos = eye};
+//         const GLsizeiptr kUniformBufferSize = sizeof(PerFrameData);
+//         glNamedBufferSubData(state.perFrameData.handle, 0, kUniformBufferSize, &perFrameData);
 
-uint8_t *genDefaultCheckerboardImage(int *width, int *height)
-{
-    const int w = 128;
-    const int h = 128;
+//         program.use();
+//         glDepthMask(false);
+//         glBindVertexArray(vao);
+//         glDrawArrays(GL_TRIANGLES, 0, 36);
+//         glDepthMask(true);
+//     }
 
-    uint8_t *imgData = (uint8_t *)malloc(w * h * 3); // stbi_load() uses malloc(), so this is safe
+//     GLTexture envMap;
+//     GLShader cubeVertexShader = GLShader("assets/shaders/cube.vert", GL_VERTEX_SHADER);
+//     GLShader cubeFragmentShader = GLShader("assets/shaders/cube.frag", GL_FRAGMENT_SHADER);
+//     GLProgram program = GLProgram{cubeVertexShader, cubeFragmentShader};
+//     GLuint vao;
+//     GLBuffer perFrameData;
+// };
 
-    assert(imgData && w > 0 && h > 0);
-    assert(w == h);
+// struct Scene
+// {
+//     void destroy()
+//     {
+//         skybox.destroy();
+//     }
+//     GLSkybox skybox;
+// };
 
-    if (!imgData || w <= 0 || h <= 0)
-        return nullptr;
-    if (w != h)
-        return nullptr;
+// struct GLRenderer
+// {
+//     GLRenderer(int width, int height)
+//     {
+//         state.width = width;
+//         state.height = height;
+//         init();
+//     }
 
-    for (int i = 0; i < w * h; i++)
-    {
-        const int row = i / w;
-        const int col = i % w;
-        imgData[i * 3 + 0] = imgData[i * 3 + 1] = imgData[i * 3 + 2] = 0xFF * ((row + col) % 2);
-    }
+//     void init()
+//     {
+//         if (!glfwInit())
+//         {
+//             throw std::runtime_error("glfwInit failed");
+//         }
 
-    if (width)
-        *width = w;
-    if (height)
-        *height = h;
+//         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+//         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+//         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+//         glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+//         glfwWindowHint(GLFW_SAMPLES, 4);
+//         state.window = glfwCreateWindow(state.width, state.height, "hello opengl", NULL, NULL);
+//         if (!state.window)
+//         {
+//             throw std::runtime_error("glfw create widnow failed!!");
+//         }
+//         glfwMakeContextCurrent(state.window);
 
-    return imgData;
-}
+//         if (!gladLoadGL())
+//         {
+//             glfwDestroyWindow(state.window);
+//             throw std::runtime_error("gladloadGL failed.");
+//         }
 
-struct Camera
-{
-    Camera()
-    {
-    }
-    Camera(vec3 pos, vec3 target, vec3 up, float fov, float ratio)
-        : position(pos)
-    {
-        viewMat = lookAt(pos, target, up);
-        perspectiveMat = perspective(fov, ratio, 0.1f, 1000.f);
-    }
+//         const GLsizeiptr kUniformBufferSize = sizeof(PerFrameData);
+//         GLBuffer perFrameDataBuffer(kUniformBufferSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
+//         glBindBufferRange(GL_UNIFORM_BUFFER, 0, perFrameDataBuffer.handle, 0, kUniformBufferSize);
+//         state.perFrameData = std::move(perFrameDataBuffer);
+//     }
 
-    vec3 position;
-    mat4 viewMat;
-    mat4 perspectiveMat;
-};
+//     void render(Scene &scene, Camera &camera)
+//     {
+//         state.camera = camera;
+//         scene.skybox.draw(state);
+//     }
 
-struct PerFrameData
-{
-    mat4 view;
-    mat4 proj;
-    vec3 cameraPos;
-};
+//     void destroy()
+//     {
+//         // if (state.albedo.handle > 0)
+//         // {
+//         //     state.albedo.destroy();
+//         // }
+//         state.perFrameData.destroy();
+//         // state.modelMat.destroy();
+//         // state.mesh.destroy();
+//         state.program.destroy();
+//         glfwDestroyWindow(state.window);
+//         glfwTerminate();
+//     }
+//     State state;
+// };
 
-struct GLBuffer
-{
-    GLBuffer()
-    {
-    }
-    GLBuffer(GLsizeiptr size, const void *data, GLbitfield flags)
-    {
+// void run()
+// {
+//     int width = 1280;
+//     int height = 720;
+//     GLRenderer renderer(1280, 720);
+//     const vec3 eye = vec3(0.0f, 6.0f, 11.0f);
+//     const vec3 target = vec3(0.0f, 4.0f, -1.0f);
+//     Camera camera(eye, target, vec3(0.0, 1.0, 0.0f), 45.0f, width / (float)height);
+//     Scene scene;
+//     while (!glfwWindowShouldClose(renderer.state.window))
+//     {
+//         glfwPollEvents();
+//         renderer.render(scene, camera);
+//         glfwSwapBuffers(renderer.state.window);
+//     }
+//     renderer.destroy();
+// State state;
+// state.width = 1280;
+// state.height = 720;
+// if (!glfwInit())
+// {
+//     throw std::runtime_error("glfwInit failed");
+// }
 
-        glCreateBuffers(1, &handle);
-        glNamedBufferStorage(handle, size, data, flags);
-    }
+// glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+// glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+// glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+// glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+// glfwWindowHint(GLFW_SAMPLES, 4);
+// auto window = glfwCreateWindow(state.width, state.height, "hello opengl", NULL, NULL);
+// if (!window)
+// {
+//     throw std::runtime_error("glfw create widnow failed!!");
+// }
+// glfwMakeContextCurrent(window);
 
-    void destroy()
-    {
-        glDeleteBuffers(1, &handle);
-    }
+// if (!gladLoadGL())
+// {
+//     glfwDestroyWindow(window);
+//     throw std::runtime_error("gladloadGL failed.");
+// }
+// state.window = std::move(window);
 
-    GLuint handle;
-};
+// const GLsizeiptr kUniformBufferSize = sizeof(PerFrameData);
+// GLBuffer perFrameDataBuffer(kUniformBufferSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
+// glBindBufferRange(GL_UNIFORM_BUFFER, 0, perFrameDataBuffer.handle, 0, kUniformBufferSize);
+// state.perFrameData = std::move(perFrameDataBuffer);
 
-struct GLShader
-{
-    GLShader()
-    {
-    }
-    GLShader(const char *fileName, GLenum type)
-        : handle(glCreateShader(type))
-    {
-        ifstream t(fileName);
-        stringstream buffer;
-        if (t.is_open() && t.good())
-        {
-            buffer << t.rdbuf();
-            const string text_string = buffer.str();
-            const char *text = text_string.c_str();
+// GLSkybox skybox;
 
-            glShaderSource(handle, 1, &text, nullptr);
-            glCompileShader(handle);
-            char message[8192];
-            GLsizei length = 0;
-            glGetShaderInfoLog(handle, sizeof(message), &length, message);
+// glEnable(GL_DEPTH_TEST);
+// glDepthMask(GL_TRUE);
+// glEnable(GL_CULL_FACE);
+// glEnable(GL_MULTISAMPLE);
 
-            if (length)
-            {
-                printf("%s (File: %s)\n", message, fileName);
-                printf("shader file content: \n %s", text);
-                throw std::runtime_error("failed to compile shader");
-            }
-        }
-    }
+// const GLsizeiptr kUniformBufferSize = sizeof(PerFrameData);
+// GLBuffer perFrameDataBuffer(kUniformBufferSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
+// glBindBufferRange(GL_UNIFORM_BUFFER, 0, perFrameDataBuffer.handle, 0, kUniformBufferSize);
+// state.perFrameData = std::move(perFrameDataBuffer);
 
-    void destroy()
-    {
-        glDeleteShader(handle);
-    }
+// GLShader vertex("assets/shaders/simple.vert", GL_VERTEX_SHADER);
+// GLShader frag("assets/shaders/simple.frag", GL_FRAGMENT_SHADER);
+// GLProgram program(vertex, frag);
+// vertex.destroy();
+// frag.destroy();
+// state.program = std::move(program);
 
-    GLuint handle;
-};
+// const aiScene *scene = aiImportFile("assets/models/helmet/DamagedHelmet.gltf", aiProcess_Triangulate);
+// if (!scene || !scene->HasMeshes())
+// {
+//     throw runtime_error("failed to load scene file");
+// }
 
-struct GLProgram
-{
-    GLProgram()
-    {
-    }
-    GLProgram(const GLShader &shader1, const GLShader &shader2)
-    {
-        handle = glCreateProgram();
-        glAttachShader(handle, shader1.handle);
-        glAttachShader(handle, shader2.handle);
-        glLinkProgram(handle);
-        char buffer[8192];
-        GLsizei length = 0;
-        glGetProgramInfoLog(handle, sizeof(buffer), &length, buffer);
-        if (length)
-        {
-            printf("%s\n", buffer);
-            throw new std::runtime_error("failed to create program");
-        }
-    }
+// std::vector<VertexData> vertices;
+// std::vector<uint32_t> indices;
 
-    void use()
-    {
-        glUseProgram(handle);
-    }
+// {
+//     const aiMesh *mesh = scene->mMeshes[0];
+//     for (unsigned i = 0; i != mesh->mNumVertices; i++)
+//     {
+//         const aiVector3D v = mesh->mVertices[i];
+//         const aiVector3D n = mesh->mNormals[i];
+//         const aiVector3D t = mesh->mTextureCoords[0][i];
+//         vertices.push_back({.pos = vec3(v.x, v.y, v.z), .n = vec3(n.x, n.y, n.z), .tc = vec2(t.x, 1.0f - t.y)});
+//     }
+//     for (unsigned i = 0; i != mesh->mNumFaces; i++)
+//     {
+//         for (unsigned j = 0; j != 3; j++)
+//         {
+//             indices.push_back(mesh->mFaces[i].mIndices[j]);
+//         }
+//     }
+//     aiReleaseImport(scene);
+// }
 
-    void destroy()
-    {
-        glDeleteProgram(handle);
-    }
+// const size_t kSizeIndices = sizeof(uint32_t) * indices.size();
+// const size_t kSizeVertices = sizeof(VertexData) * vertices.size();
 
-    GLuint handle;
-};
+// GLMesh mesh(indices.data(), (uint32_t)kSizeIndices, (float *)vertices.data(), (uint32_t)kSizeVertices);
+// state.mesh = std::move(mesh);
+// GLTexture texAlbedo(GL_TEXTURE_2D, "assets/models/helmet/Default_albedo.jpg");
+// glBindTextures(0, 1, &texAlbedo.handle);
+// state.albedo = std::move(texAlbedo);
 
-struct GLTexture
-{
-    GLTexture()
-    {
-    }
-    GLTexture(GLenum type_, const char *fileName)
-        : type(type_)
-    {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glCreateTextures(type, 1, &handle);
-        glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, 0);
-        glTextureParameteri(handle, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTextureParameteri(handle, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTextureParameteri(handle, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTextureParameteri(handle, GL_TEXTURE_WRAP_T, GL_REPEAT);
+// // GLTexture envMap(GL_TEXTURE_CUBE_MAP, "assets/environment/piazza_bologni_1k.hdr");
+// // glBindTextures(5, 1, &envMap.handle);
 
-        const char *ext = strrchr(fileName, '.');
+// const mat4 m(1.0f);
+// GLBuffer modelMatrices(sizeof(mat4), value_ptr(m), GL_DYNAMIC_STORAGE_BIT);
+// glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, modelMatrices.handle);
+// state.modelMat = std::move(modelMatrices);
 
-        switch (type)
-        {
-        case GL_TEXTURE_2D:
-        {
-            int w = 0;
-            int h = 0;
-            int numMipmaps = 0;
-            uint8_t *img = stbi_load(fileName, &w, &h, nullptr, STBI_rgb_alpha);
-            if (!img)
-            {
-                img = genDefaultCheckerboardImage(&w, &h);
-                if (!img)
-                {
-                    throw std::runtime_error("failed to load image %s" + std::string(fileName));
-                }
-            }
-            numMipmaps = getNumMipMapLevels2D(w, h);
-            glTextureStorage2D(handle, numMipmaps, GL_RGBA8, w, h);
-            glTextureSubImage2D(handle, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, img);
-            stbi_image_free((void *)img);
-            glGenerateTextureMipmap(handle);
-            glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, numMipmaps - 1);
-            glTextureParameteri(handle, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTextureParameteri(handle, GL_TEXTURE_MAX_ANISOTROPY, 16);
-            break;
-        }
-        case GL_TEXTURE_CUBE_MAP:
-        {
-            int w, h, comp;
-            const float *img = stbi_loadf(fileName, &w, &h, &comp, 3);
-            assert(img);
-            Bitmap in(w, h, comp, eBitmapFormat_Float, img);
-            const bool isEquirectangular = w == 2 * h;
-            Bitmap out = isEquirectangular ? convertEquirectangularMapToVerticalCross(in) : in;
-            stbi_image_free((void *)img);
-            Bitmap cubemap = convertVerticalCrossToCubeMapFaces(out);
-            const int numMipmaps = getNumMipMapLevels2D(cubemap.w_, cubemap.h_);
-            glTextureParameteri(handle, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTextureParameteri(handle, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTextureParameteri(handle, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-            glTextureParameteri(handle, GL_TEXTURE_BASE_LEVEL, 0);
-            glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, numMipmaps - 1);
-            glTextureParameteri(handle, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTextureParameteri(handle, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-            glTextureStorage2D(handle, numMipmaps, GL_RGB32F, cubemap.w_, cubemap.h_);
-            const uint8_t *data = cubemap.data_.data();
+// const vec3 eye = vec3(0.0f, 6.0f, 11.0f);
+// const vec3 target = vec3(0.0f, 4.0f, -1.0f);
+// Camera camera(eye, target, vec3(0.0, 1.0, 0.0f), 45.0f, state.width / (float)state.height);
 
-            for (unsigned i = 0; i != 6; ++i)
-            {
-                glTextureSubImage3D(handle, 0, 0, 0, i, cubemap.w_, cubemap.h_, 1, GL_RGB, GL_FLOAT, data);
-                data += cubemap.w_ * cubemap.h_ * cubemap.comp_ * Bitmap::getBytesPerComponent(cubemap.fmt_);
-            }
+// while (!glfwWindowShouldClose(window))
+// {
+//     glfwPollEvents();
 
-            glGenerateTextureMipmap(handle);
-            break;
-        }
+//     // glfwGetFramebufferSize(window, &state.width, &state.height);
+//     // const float ratio = state.width / (float)state.height;
 
-        default:
-        {
-            throw std::runtime_error("not implemented!!!");
-        }
-        }
-    }
+//     // glViewport(0, 0, state.width, state.height);
+//     // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//     // const mat4 p = glm::perspective(45.0f, ratio, 0.5f, 5000.0f);
+//     // camera.perspectiveMat = std::move(p);
+//     // const PerFrameData perFrameData = {
+//     //     .view = camera.viewMat,
+//     //     .proj = camera.perspectiveMat,
+//     //     .cameraPos = eye};
+//     // glNamedBufferSubData(state.perFrameData.handle, 0, kUniformBufferSize, &perFrameData);
 
-    void destroy()
-    {
-        glDeleteTextures(1, &handle);
-    }
+//     // const mat4 scale = glm::scale(mat4(1.0f), vec3(5.0f));
+//     // const mat4 rot = glm::rotate(mat4(1.0f), glm::radians(90.0f), vec3(1.0f, 0.0f, 0.0f));
+//     // const mat4 pos = glm::translate(mat4(1.0f), vec3(0.0f, 0.0f, -1.0f));
+//     // const mat4 m = glm::rotate(scale * rot * pos, (float)glfwGetTime() * 0.1f, vec3(0.0f, 0.0f, 1.0f));
+//     // glNamedBufferSubData(state.modelMat.handle, 0, sizeof(mat4), value_ptr(m));
 
-    GLenum type;
-    GLuint handle;
-};
+//     // state.program.use();
+//     // state.mesh.draw();
+//     skybox.draw(state);
 
-struct GLMesh
-{
-    GLMesh()
-    {
-    }
-    GLMesh(const uint32_t *indices, uint32_t indicesSize, const float *vertexData, uint32_t verticesSize)
-        : numIndices(indicesSize / sizeof(uint32_t)), indicesBuffer(indicesSize, indices, 0), verticesBuffer(verticesSize, vertexData, 0)
-    {
-        glCreateVertexArrays(1, &vao);
-        glVertexArrayElementBuffer(vao, indicesBuffer.handle);
-    }
+//     glfwSwapBuffers(window);
+// }
+// skybox.destroy();
+// // state.albedo.destroy();
+// // state.perFrameData.destroy();
+// // state.modelMat.destroy();
+// // state.mesh.destroy();
+// // state.program.destroy();
 
-    void draw()
-    {
-        glBindVertexArray(vao);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, verticesBuffer.handle);
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(numIndices), GL_UNSIGNED_INT, nullptr);
-    }
-    void destroy()
-    {
-        glDeleteVertexArrays(1, &vao);
-    }
-    GLuint vao;
-    uint32_t numIndices;
-    GLBuffer indicesBuffer;
-    GLBuffer verticesBuffer;
-};
-
-struct VertexData
-{
-    vec3 pos;
-    vec3 n;
-    vec2 tc;
-};
-
-struct State
-{
-    GLMesh mesh;
-    GLTexture albedo;
-    GLBuffer modelMat;
-    GLBuffer perFrameData;
-    GLProgram program;
-    int width;
-    int height;
-};
-
-void run()
-{
-    State state;
-    state.width = 1280;
-    state.height = 720;
-    if (!glfwInit())
-    {
-        throw std::runtime_error("glfwInit failed");
-    }
-
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-    glfwWindowHint(GLFW_SAMPLES, 4);
-    auto window = glfwCreateWindow(state.width, state.height, "hello opengl", NULL, NULL);
-    if (!window)
-    {
-        throw std::runtime_error("glfw create widnow failed!!");
-    }
-    glfwMakeContextCurrent(window);
-
-    if (!gladLoadGL())
-    {
-        glfwDestroyWindow(window);
-        throw std::runtime_error("gladloadGL failed.");
-    }
-
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_MULTISAMPLE);
-
-    const GLsizeiptr kUniformBufferSize = sizeof(PerFrameData);
-    GLBuffer perFrameDataBuffer(kUniformBufferSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, perFrameDataBuffer.handle, 0, kUniformBufferSize);
-    state.perFrameData = std::move(perFrameDataBuffer);
-
-    GLShader vertex("assets/shaders/simple.vert", GL_VERTEX_SHADER);
-    GLShader frag("assets/shaders/simple.frag", GL_FRAGMENT_SHADER);
-    GLProgram program(vertex, frag);
-    vertex.destroy();
-    frag.destroy();
-    state.program = std::move(program);
-
-    const aiScene *scene = aiImportFile("assets/models/helmet/DamagedHelmet.gltf", aiProcess_Triangulate);
-    if (!scene || !scene->HasMeshes())
-    {
-        throw runtime_error("failed to load scene file");
-    }
-
-    std::vector<VertexData> vertices;
-    std::vector<uint32_t> indices;
-
-    {
-        const aiMesh *mesh = scene->mMeshes[0];
-        for (unsigned i = 0; i != mesh->mNumVertices; i++)
-        {
-            const aiVector3D v = mesh->mVertices[i];
-            const aiVector3D n = mesh->mNormals[i];
-            const aiVector3D t = mesh->mTextureCoords[0][i];
-            vertices.push_back({.pos = vec3(v.x, v.y, v.z), .n = vec3(n.x, n.y, n.z), .tc = vec2(t.x, 1.0f - t.y)});
-        }
-        for (unsigned i = 0; i != mesh->mNumFaces; i++)
-        {
-            for (unsigned j = 0; j != 3; j++)
-            {
-                indices.push_back(mesh->mFaces[i].mIndices[j]);
-            }
-        }
-        aiReleaseImport(scene);
-    }
-
-    const size_t kSizeIndices = sizeof(uint32_t) * indices.size();
-    const size_t kSizeVertices = sizeof(VertexData) * vertices.size();
-
-    GLMesh mesh(indices.data(), (uint32_t)kSizeIndices, (float *)vertices.data(), (uint32_t)kSizeVertices);
-    state.mesh = std::move(mesh);
-    GLTexture texAlbedo(GL_TEXTURE_2D, "assets/models/helmet/Default_albedo.jpg");
-    glBindTextures(0, 1, &texAlbedo.handle);
-    state.albedo = std::move(texAlbedo);
-
-    GLTexture envMap(GL_TEXTURE_CUBE_MAP, "assets/environment/piazza_bologni_1k.hdr");
-    glBindTextures(5, 1, &envMap.handle);
-
-    const mat4 m(1.0f);
-    GLBuffer modelMatrices(sizeof(mat4), value_ptr(m), GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, modelMatrices.handle);
-    state.modelMat = std::move(modelMatrices);
-
-    const vec3 eye = vec3(0.0f, 6.0f, 11.0f);
-    const vec3 target = vec3(0.0f, 4.0f, -1.0f);
-    Camera camera(eye, target, vec3(0.0, 1.0, 0.0f), 45.0f, state.width / (float)state.height);
-
-    while (!glfwWindowShouldClose(window))
-    {
-        glfwPollEvents();
-
-        glfwGetFramebufferSize(window, &state.width, &state.height);
-        const float ratio = state.width / (float)state.height;
-
-        glViewport(0, 0, state.width, state.height);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        const mat4 p = glm::perspective(45.0f, ratio, 0.5f, 5000.0f);
-        camera.perspectiveMat = std::move(p);
-        const PerFrameData perFrameData = {
-            .view = camera.viewMat,
-            .proj = camera.perspectiveMat,
-            .cameraPos = eye};
-        glNamedBufferSubData(state.perFrameData.handle, 0, kUniformBufferSize, &perFrameData);
-
-        const mat4 scale = glm::scale(mat4(1.0f), vec3(5.0f));
-        const mat4 rot = glm::rotate(mat4(1.0f), glm::radians(90.0f), vec3(1.0f, 0.0f, 0.0f));
-        const mat4 pos = glm::translate(mat4(1.0f), vec3(0.0f, 0.0f, -1.0f));
-        const mat4 m = glm::rotate(scale * rot * pos, (float)glfwGetTime() * 0.1f, vec3(0.0f, 0.0f, 1.0f));
-        glNamedBufferSubData(state.modelMat.handle, 0, sizeof(mat4), value_ptr(m));
-        state.program.use();
-        state.mesh.draw();
-
-        glfwSwapBuffers(window);
-    }
-    state.albedo.destroy();
-    state.perFrameData.destroy();
-    state.modelMat.destroy();
-    state.mesh.destroy();
-    state.program.destroy();
-
-    glfwDestroyWindow(window);
-    glfwTerminate();
-}
+// glfwDestroyWindow(state.window);
+// glfwTerminate();
+// }
 
 int main()
 {
-    run();
-    return 0;
+    int width = 1280;
+    int height = 720;
+    Window window(width, height);
+    Renderer renderer(&window);
+    Scene scene;
+    scene.background = std::string("assets/environment/piazza_bologni_1k.hdr");
+    const vec3 eye = vec3(0.0f, 0.0f, 4.0f);
+    const vec3 target = vec3(0.0f, 0.0f, 0.0f);
+    Camera camera(eye, target, vec3(0.0, 1.0, 0.0f), 45.0f, width / (float)height);
+
+    Material material;
+    material.albedoMap = "assets/models/helmet/Default_albedo.jpg";
+
+    Mesh mesh;
+    mesh.load("assets/models/helmet/DamagedHelmet.gltf");
+
+    Model model(&mesh, &material);
+    scene.model = model;
+
+    // Transform transform(vec3(0.0f, 0.0f, -1.0f), quat(0.0, 0.0f, 0.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f));
+
+    while (!window.shouldClose())
+    {
+        window.poolEvents();
+        auto euler = scene.model.transform.rotation();
+        euler.y = glfwGetTime() * 0.5;
+
+        Transform transform(vec3(0.0f, 0.0f, 0.0f), euler, vec3(1.0f, 1.0f, 1.0f));
+        scene.model.transform = transform;
+
+        renderer.render(scene, camera);
+
+        window.swap();
+    }
+    window.destroy();
 }

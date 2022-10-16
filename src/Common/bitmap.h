@@ -2,9 +2,9 @@
 
 #include <string.h>
 #include <vector>
-
+#define GLM_FORCE_SWIZZLE
 #include <glm/glm.hpp>
-
+#include <glm/ext.hpp>
 using namespace glm;
 
 enum eBitmapType
@@ -192,10 +192,10 @@ Bitmap convertEquirectangularMapToVerticalCross(const Bitmap &b)
                 const float Uf = float(2.0f * faceSize * (theta + M_PI) / M_PI);
                 const float Vf = float(2.0f * faceSize * (M_PI / 2.0f - phi) / M_PI);
                 // 4-samples for bilinear interpolation
-                const int U1 = clamp(int(floor(Uf)), 0, clampW);
-                const int V1 = clamp(int(floor(Vf)), 0, clampH);
-                const int U2 = clamp(U1 + 1, 0, clampW);
-                const int V2 = clamp(V1 + 1, 0, clampH);
+                const int U1 = glm::clamp(int(floor(Uf)), 0, clampW);
+                const int V1 = glm::clamp(int(floor(Vf)), 0, clampH);
+                const int U2 = glm::clamp(U1 + 1, 0, clampW);
+                const int V2 = glm::clamp(V1 + 1, 0, clampH);
                 // fractional part
                 const float s = Uf - U1;
                 const float t = Vf - V1;
