@@ -6,7 +6,9 @@
 #include <assimp/cimport.h>
 #include <assimp/version.h>
 #include <stdexcept>
-
+#include <Common/uuid.h>
+#include <glm/glm.hpp>
+using namespace glm;
 struct VertexData
 {
     vec3 pos;
@@ -17,6 +19,9 @@ struct VertexData
 class Mesh
 {
 public:
+    Mesh() : id(uuid::generate_uuid_v4())
+    {
+    }
     void load(const char *fileName)
     {
         const aiScene *scene = aiImportFile("assets/models/helmet/DamagedHelmet.gltf", aiProcess_Triangulate);
@@ -47,4 +52,5 @@ public:
 
     std::vector<VertexData> vertices;
     std::vector<uint32_t> indices;
+    std::string id;
 };

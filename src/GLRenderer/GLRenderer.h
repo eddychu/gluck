@@ -23,29 +23,29 @@ public:
         this->width = width;
         this->height = height;
 
-        // glEnable(GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST);
         // glDepthMask(GL_TRUE);
         // glEnable(GL_CULL_FACE);
         // glEnable(GL_MULTISAMPLE);
     }
 
-    void updateMaterial(const string &name, const Material &material)
+    void updateMaterial(const Material &material)
     {
-        if (materials.find(name) == materials.end())
+        if (materials.find(material.id) == materials.end())
         {
             GLMaterial glMaterial(material);
-            materials.insert(pair<string, GLMaterial>(name, std::move(glMaterial)));
+            materials.insert(pair<string, GLMaterial>(material.id, std::move(glMaterial)));
         }
     }
 
-    void updateCamera(const string &name, const Camera &camera)
+    void updateCamera(const Camera &camera)
     {
-        if (cameras.find(name) == cameras.end())
+        if (cameras.find(camera.id) == cameras.end())
         {
             GLCamera glCamera(CAMERA_LOCATION);
-            cameras.insert(pair<string, GLCamera>(name, std::move(glCamera)));
+            cameras.insert(pair<string, GLCamera>(camera.id, std::move(glCamera)));
         }
-        cameras.at(name).update(camera);
+        cameras.at(camera.id).update(camera);
     }
 
     void updateBackground(const string &name, const string &envmap)
@@ -57,42 +57,40 @@ public:
         }
     }
 
-    void updateMesh(const string &name, const Mesh &mesh)
+    void updateMesh(const Mesh &mesh)
     {
-        if (meshes.find(name) == meshes.end())
+        if (meshes.find(mesh.id) == meshes.end())
         {
             const size_t kSizeIndices = sizeof(uint32_t) * mesh.indices.size();
             const size_t kSizeVertices = sizeof(VertexData) * mesh.vertices.size();
             GLMesh glMesh(mesh.indices.data(), (uint32_t)kSizeIndices, (float *)mesh.vertices.data(), (uint32_t)kSizeVertices);
-            meshes.insert(pair<string, GLMesh>(name, std::move(glMesh)));
+            meshes.insert(pair<string, GLMesh>(mesh.id, std::move(glMesh)));
         }
     }
 
-    void updateTransform(const string &name, const Transform &transform)
+    void updateTransform(const Transform &transform)
     {
-        if (transforms.find(name) == transforms.end())
+        if (transforms.find(transform.id) == transforms.end())
         {
             GLTransform glTransform(MODEL_TRANSFORM_LOCATION);
-            transforms.insert(pair<string, GLTransform>(name, std::move(glTransform)));
+            transforms.insert(pair<string, GLTransform>(transform.id, std::move(glTransform)));
         }
-        transforms.at(name).update(transform);
+        transforms.at(transform.id).update(transform);
     }
 
     void render(const Scene &scene, const Camera &camera)
     {
-        updateCamera("default", camera);
-        updateBackground("default", scene.background);
-
-        updateMesh("default", *(scene.model.mesh));
-        updateTransform("default", scene.model.transform);
-        updateMaterial("default", *(scene.model.material));
+        updateCamera(camera);
+        updateBackground(scene.id, scene.background);
+        updateMesh(*(scene.model.mesh));
+        updateTransform(scene.model.transform);
+        updateMaterial(*(scene.model.material));
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        backgrounds.at("default").draw();
+        backgrounds.at(scene.id).draw();
 
-        materials.at("default").use();
-
-        meshes.at("default").draw();
+        materials.at(scene.model.material->id).use();
+        meshes.at(scene.model.mesh->id).draw();
     }
 
     unordered_map<string, GLSkybox> backgrounds;

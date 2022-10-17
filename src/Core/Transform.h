@@ -3,6 +3,7 @@
 #include <glm/ext.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <Common/uuid.h>
 using namespace glm;
 
 class Transform
@@ -20,7 +21,7 @@ public:
         return Transform(p, euler, s);
     }
     Transform(vec3 position = vec3(0.0f, 0.0f, 0.0f), vec3 rotation = vec3(0.0f, 0.0f, 0.0f), vec3 scale = vec3(1.0f, 1.0f, 1.0f))
-        : m_position(position), m_rotation(rotation), m_scale(scale)
+        : id(uuid::generate_uuid_v4()), m_position(position), m_rotation(rotation), m_scale(scale)
     {
         auto t = translate(mat4(1.0f), m_position);
         auto r = toMat4(quat(rotation));
@@ -47,6 +48,9 @@ public:
     {
         return m_rotation;
     }
+
+public:
+    std::string id;
 
 private:
     vec3 m_position;
