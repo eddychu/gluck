@@ -17,12 +17,16 @@ int main()
 
     Material material;
     material.albedoMap = "assets/models/helmet/Default_albedo.jpg";
-
+    material.emissiveMap = "assets/models/helmet/Default_emissive.jpg";
+    material.normalMap = "assets/models/helmet/Default_normal.jpg";
     Mesh mesh;
     mesh.load("assets/models/helmet/DamagedHelmet.gltf");
 
     Model model(&mesh, &material);
     scene.model = model;
+
+    auto lightTransform = Transform(vec3(-1.0f, 1.0f, 2.0f));
+    scene.light.transform = lightTransform;
 
     // Transform transform(vec3(0.0f, 0.0f, -1.0f), quat(0.0, 0.0f, 0.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f));
 
@@ -34,7 +38,7 @@ int main()
 
         Transform transform(vec3(0.0f, 0.0f, 0.0f), euler, vec3(1.0f, 1.0f, 1.0f));
         scene.model.transform = transform;
-        
+
         renderer.render(scene, camera);
 
         window.swap();

@@ -8,7 +8,9 @@ using namespace std;
 #include <GLRenderer/GLTransform.h>
 #include <GLRenderer/GLMaterial.h>
 #include <Core/Scene.h>
+#include <GLRenderer/GLLight.h>
 const int CAMERA_LOCATION = 0;
+const int LIGHT_LOCATION = 1;
 const int MODEL_TRANSFORM_LOCATION = 2;
 class GLRenderer
 {
@@ -78,17 +80,27 @@ public:
         transforms.at(transform.id).update(transform);
     }
 
+    void updateLight(const Light &light)
+    {
+        if (lights.find(light.id) == lights.end())
+        {
+            GLLight glLight(LIGHT_LOCATION);
+            lights.insert(pair<string, GLLight>(light.id, std::move(glLight)));
+        }
+        lights.at(light.id).update(light);
+    }
+
     void render(const Scene &scene, const Camera &camera)
     {
         updateCamera(camera);
         updateBackground(scene.id, scene.background);
+        updateLight(scene.light);
         updateMesh(*(scene.model.mesh));
         updateTransform(scene.model.transform);
         updateMaterial(*(scene.model.material));
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         backgrounds.at(scene.id).draw();
-
         materials.at(scene.model.material->id).use();
         meshes.at(scene.model.mesh->id).draw();
     }
@@ -99,6 +111,7 @@ public:
     unordered_map<string, GLTransform> transforms;
     unordered_map<string, GLProgram> programs;
     unordered_map<string, GLMaterial> materials;
+    unordered_map<string, GLLight> lights;
     int width;
     int height;
 };

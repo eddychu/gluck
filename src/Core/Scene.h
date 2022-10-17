@@ -2,6 +2,7 @@
 #include <string>
 #include <Core/Model.h>
 #include <Common/uuid.h>
+#include <Core/Light.h>
 class Scene
 {
 public:
@@ -9,6 +10,7 @@ public:
     {
     }
     Model model;
+    Light light;
     std::string background;
     std::string id;
 };

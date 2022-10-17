@@ -8,5 +8,7 @@ struct Material
     {
     }
     string albedoMap;
+    string emissiveMap;
+    string normalMap;
     string id;
 };

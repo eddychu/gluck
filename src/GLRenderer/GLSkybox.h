@@ -32,24 +32,6 @@ struct GLSkybox
 
     void draw()
     {
-        // int width, height;
-        // glfwGetFramebufferSize(state.window, &state.width, &state.height);
-        // const float ratio = state.width / (float)state.height;
-
-        // glViewport(0, 0, state.width, state.height);
-        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // const vec3 eye = vec3(0.0f, 6.0f, 11.0f);
-        // const vec3 target = vec3(0.0f, 4.0f, -1.0f);
-        // Camera camera(eye, target, vec3(0.0, 1.0, 0.0f), 45.0f, state.width / (float)state.height);
-        // const mat4 p = glm::perspective(45.0f, ratio, 0.5f, 5000.0f);
-        // state.camera.perspectiveMat = std::move(p);
-        // const PerFrameData perFrameData = {
-        //     .view = camera.viewMat,
-        //     .proj = camera.perspectiveMat,
-        //     .cameraPos = eye};
-        // const GLsizeiptr kUniformBufferSize = sizeof(PerFrameData);
-        // glNamedBufferSubData(state.perFrameData.handle, 0, kUniformBufferSize, &perFrameData);
 
         program.use();
         glDepthMask(false);

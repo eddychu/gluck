@@ -20,7 +20,7 @@ struct GLCamera
     GLCamera(int location)
         : cameraBuffer(CameraDataSize, nullptr, GL_DYNAMIC_STORAGE_BIT)
     {
-        glBindBufferRange(GL_UNIFORM_BUFFER, 0, cameraBuffer.handle, 0, CameraDataSize);
+        glBindBufferRange(GL_UNIFORM_BUFFER, location, cameraBuffer.handle, 0, CameraDataSize);
     }
     void update(const Camera &camera)
     {
