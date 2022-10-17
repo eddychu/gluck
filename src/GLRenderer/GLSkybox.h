@@ -14,11 +14,18 @@ using namespace glm;
 
 struct GLSkybox
 {
-    GLSkybox(const std::string &envMapFile = "assets/environment/piazza_bologni_1k.hdr")
-        : envMap(GL_TEXTURE_CUBE_MAP, envMapFile.c_str())
+    GLSkybox(const std::string &envMapFile = "assets/environment/piazza_bologni_1k.hdr",
+             const std::string &envIrradianceMapFile = "assets/environment/piazza_bologni_1k_irradiance.hdr",
+             const std::string &brdfLutFile = "assets/brdfLUT.ktx")
+        : envMap(GL_TEXTURE_CUBE_MAP, envMapFile.c_str()), envIrradianceMap(GL_TEXTURE_CUBE_MAP, envIrradianceMapFile.c_str()), brdfLut(GL_TEXTURE_2D, brdfLutFile.c_str())
     {
+        std::vector<GLuint> textures = {
+            envMap.handle, envIrradianceMap.handle};
+
         glCreateVertexArrays(1, &vao);
-        glBindTextures(5, 1, &envMap.handle);
+        glBindTextures(5, textures.size(), textures.data());
+
+        glBindTextureUnit(7, brdfLut.handle);
     }
 
     void destroy()
@@ -41,8 +48,11 @@ struct GLSkybox
     }
 
     GLTexture envMap;
+    GLTexture envIrradianceMap;
+    GLTexture brdfLut;
     GLShader cubeVertexShader = GLShader("assets/shaders/cube.vert", GL_VERTEX_SHADER);
     GLShader cubeFragmentShader = GLShader("assets/shaders/cube.frag", GL_FRAGMENT_SHADER);
+
     GLProgram program = GLProgram{cubeVertexShader, cubeFragmentShader};
     GLuint vao;
 };

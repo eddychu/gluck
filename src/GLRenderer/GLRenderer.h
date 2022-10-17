@@ -50,12 +50,12 @@ public:
         cameras.at(camera.id).update(camera);
     }
 
-    void updateBackground(const string &name, const string &envmap)
+    void updateEnvironment(const Scene &scene)
     {
-        if (backgrounds.find(name) == backgrounds.end())
+        if (backgrounds.find(scene.id) == backgrounds.end())
         {
-            GLSkybox background(envmap);
-            backgrounds.insert(pair<string, GLSkybox>(name, std::move(background)));
+            GLSkybox background(scene.environment, scene.environmentIrradiance);
+            backgrounds.insert(pair<string, GLSkybox>(scene.id, std::move(background)));
         }
     }
 
@@ -93,7 +93,7 @@ public:
     void render(const Scene &scene, const Camera &camera)
     {
         updateCamera(camera);
-        updateBackground(scene.id, scene.background);
+        updateEnvironment(scene);
         updateLight(scene.light);
         updateMesh(*(scene.model.mesh));
         updateTransform(scene.model.transform);

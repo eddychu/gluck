@@ -11,6 +11,8 @@ public:
     }
     Model model;
     Light light;
-    std::string background;
+    std::string environment;
+    std::string environmentIrradiance;
+    std::string brdfLut;
     std::string id;
 };

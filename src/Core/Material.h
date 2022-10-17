@@ -10,5 +10,7 @@ struct Material
     string albedoMap;
     string emissiveMap;
     string normalMap;
+    string metalRoughnessMap;
+    string aoMap;
     string id;
 };

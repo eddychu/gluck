@@ -71,7 +71,6 @@ struct GLTexture
         {
             int w = 0;
             int h = 0;
-            int numMipmaps = 0;
             uint8_t *img = stbi_load(fileName, &w, &h, nullptr, STBI_rgb_alpha);
             if (!img)
             {

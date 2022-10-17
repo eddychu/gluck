@@ -10,7 +10,8 @@ int main()
     Window window(width, height);
     Renderer renderer(&window);
     Scene scene;
-    scene.background = std::string("assets/environment/piazza_bologni_1k.hdr");
+    scene.environment = std::string("assets/environment/piazza_bologni_1k.hdr");
+    scene.environmentIrradiance = std::string("assets/environment/piazza_bologni_1k_irradiance.hdr");
     const vec3 eye = vec3(0.0f, 0.0f, 4.0f);
     const vec3 target = vec3(0.0f, 0.0f, 0.0f);
     Camera camera(eye, target, vec3(0.0, 1.0, 0.0f), 45.0f, width / (float)height);
@@ -19,14 +20,17 @@ int main()
     material.albedoMap = "assets/models/helmet/Default_albedo.jpg";
     material.emissiveMap = "assets/models/helmet/Default_emissive.jpg";
     material.normalMap = "assets/models/helmet/Default_normal.jpg";
+    material.metalRoughnessMap = "assets/models/helmet/Default_metalRoughness.jpg";
+    material.aoMap = "assets/models/helmet/Default_AO.jpg";
     Mesh mesh;
     mesh.load("assets/models/helmet/DamagedHelmet.gltf");
 
     Model model(&mesh, &material);
     scene.model = model;
 
-    auto lightTransform = Transform(vec3(-1.0f, 1.0f, 2.0f));
+    auto lightTransform = Transform(vec3(-3.0f, 2.0f, 0.0f));
     scene.light.transform = lightTransform;
+    // scene.light.intennsity = vec3(5.0, 5.0, 5.0);
 
     // Transform transform(vec3(0.0f, 0.0f, -1.0f), quat(0.0, 0.0f, 0.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f));
 
