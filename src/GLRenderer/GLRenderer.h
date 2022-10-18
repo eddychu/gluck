@@ -10,8 +10,8 @@ using namespace std;
 #include <Core/Scene.h>
 #include <GLRenderer/GLLight.h>
 const int CAMERA_LOCATION = 0;
-const int LIGHT_LOCATION = 1;
 const int MODEL_TRANSFORM_LOCATION = 2;
+const int LIGHT_LOCATION = 3;
 class GLRenderer
 {
 public:
@@ -84,6 +84,7 @@ public:
     {
         if (lights.find(light.id) == lights.end())
         {
+            printf("creating....\n");
             GLLight glLight(LIGHT_LOCATION);
             lights.insert(pair<string, GLLight>(light.id, std::move(glLight)));
         }
@@ -102,6 +103,7 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         backgrounds.at(scene.id).draw();
         materials.at(scene.model.material->id).use();
+
         meshes.at(scene.model.mesh->id).draw();
     }
 

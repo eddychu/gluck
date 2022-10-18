@@ -8,6 +8,7 @@ layout(std140, binding = 0) uniform PerFrameData
 	vec3 cameraPos;
 };
 
+
 struct Vertex
 {
 	float p[3];
@@ -24,6 +25,7 @@ layout(std430, binding = 2) restrict readonly buffer Matrices
 {
 	mat4 in_Model[];
 };
+
 
 vec3 getPosition(int i)
 {

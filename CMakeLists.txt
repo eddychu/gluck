@@ -27,11 +27,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 # set_property(TARGET glfw PROPERTY FOLDER "extern/glfw")
 # set_property(TARGET update_mappings PROPERTY FOLDER "extern/glfw")
 
-message("Addding gli") 
-set(GLI_DIR extern/gli)
-add_subdirectory(${GLI_DIR})
-target_include_directories(${PROJECT_NAME} PRIVATE ${GLI_DIR})
-target_link_libraries(${PROJECT_NAME} PRIVATE gli)
+# message("Addding gli") 
+# set(GLI_DIR extern/gli)
+# add_subdirectory(${GLI_DIR})
+# target_include_directories(${PROJECT_NAME} PRIVATE ${GLI_DIR})
+# target_link_libraries(${PROJECT_NAME} PRIVATE gli)
 
 message("Adding glm:")
 

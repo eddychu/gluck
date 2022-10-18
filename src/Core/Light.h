@@ -7,7 +7,7 @@ using namespace glm;
 class Light
 {
 public:
-    Light() : id(uuid::generate_uuid_v4()), intennsity(1.0, 1.0, 1.0), transform()
+    Light() : id(uuid::generate_uuid_v4()), intennsity(0.5, 0.5, 0.5), transform()
     {
     }
 

@@ -28,9 +28,9 @@ int main()
     Model model(&mesh, &material);
     scene.model = model;
 
-    auto lightTransform = Transform(vec3(-3.0f, 2.0f, 0.0f));
+    auto lightTransform = Transform(vec3(1.0f, 1.0f, 1.0f));
     scene.light.transform = lightTransform;
-    // scene.light.intennsity = vec3(5.0, 5.0, 5.0);
+    scene.light.intennsity = vec3(1.0, 1.0, 1.0);
 
     // Transform transform(vec3(0.0f, 0.0f, -1.0f), quat(0.0, 0.0f, 0.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f));
 

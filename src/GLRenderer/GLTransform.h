@@ -23,7 +23,7 @@ struct GLTransform
         // const mat4 pos = glm::translate(mat4(1.0f), vec3(0.0f, 0.0f, -1.0f));
         // const mat4 m = glm::rotate(scale * rot * pos, (float)glfwGetTime() * 0.1f, vec3(0.0f, 0.0f, 1.0f));
 
-        glNamedBufferSubData(transformBuffer.handle, 0, sizeof(mat4), value_ptr(transform.localToWorld()));
+        glNamedBufferSubData(transformBuffer.handle, 0, TransformDataSize, value_ptr(transform.localToWorld()));
     }
 
     GLBuffer transformBuffer;
