@@ -10,6 +10,8 @@ set(GLAD_SOURCE extern/glad/src/glad.c)
 include_directories(src)
 add_executable(${PROJECT_NAME} ${SRC_FILES} ${GLAD_SOURCE})
 
+# add_executable(${PROJECT_NAME} src/main.cpp ${GLAD_SOURCE})
+
 message("Adding glad:")
 target_include_directories(${PROJECT_NAME} PRIVATE extern/glad/include)
 
@@ -27,16 +29,18 @@ target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 # set_property(TARGET glfw PROPERTY FOLDER "extern/glfw")
 # set_property(TARGET update_mappings PROPERTY FOLDER "extern/glfw")
 
-# message("Addding gli") 
-# set(GLI_DIR extern/gli)
-# add_subdirectory(${GLI_DIR})
-# target_include_directories(${PROJECT_NAME} PRIVATE ${GLI_DIR})
-# target_link_libraries(${PROJECT_NAME} PRIVATE gli)
+
 
 message("Adding glm:")
 
 set(GLM_DIR extern/glm)
 target_include_directories(${PROJECT_NAME} PRIVATE ${GLM_DIR})
+
+message("Addding gli") 
+set(GLI_DIR extern/gli)
+add_subdirectory(${GLI_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${GLI_DIR})
+target_link_libraries(${PROJECT_NAME} PRIVATE gli)
 
 message("Addding assimp")
 find_package(assimp REQUIRED)

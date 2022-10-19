@@ -1,3 +1,5 @@
+
+
 #include <Core/Window.h>
 #include <Core/Mesh.h>
 #include <Core/Scene.h>
@@ -10,8 +12,10 @@ int main()
     Window window(width, height);
     Renderer renderer(&window);
     Scene scene;
-    scene.environment = std::string("assets/environment/piazza_bologni_1k.hdr");
-    scene.environmentIrradiance = std::string("assets/environment/piazza_bologni_1k_irradiance.hdr");
+    scene.environment = "assets/environment/immenstadter_horn_2k.hdr";
+    scene.environmentIrradiance = "assets/environment/immenstadter_horn_2k_irradiance.hdr";
+    // scene.environment = std::string("assets/environment/piazza_bologni_1k.hdr");
+    // scene.environmentIrradiance = std::string("assets/environment/piazza_bologni_1k_irradiance.hdr");
     const vec3 eye = vec3(0.0f, 0.0f, 4.0f);
     const vec3 target = vec3(0.0f, 0.0f, 0.0f);
     Camera camera(eye, target, vec3(0.0, 1.0, 0.0f), 45.0f, width / (float)height);

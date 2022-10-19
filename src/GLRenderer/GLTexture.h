@@ -6,8 +6,9 @@
 #include <stdexcept>
 #include <Common/bitmap.h>
 #include <glm/glm.hpp>
-#include <glm/ext.hpp>
-using namespace glm;
+#include <gli/gli.hpp>
+#include <gli/texture2d.hpp>
+#include <gli/load_ktx.hpp>
 
 int getNumMipMapLevels2D(int w, int h)
 {
@@ -64,29 +65,48 @@ struct GLTexture
         glTextureParameteri(handle, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
         const char *ext = strrchr(fileName, '.');
-
+        const bool isKTX = ext && !strcmp(ext, ".ktx");
         switch (type)
         {
         case GL_TEXTURE_2D:
         {
             int w = 0;
             int h = 0;
-            uint8_t *img = stbi_load(fileName, &w, &h, nullptr, STBI_rgb_alpha);
-            if (!img)
+            int numMipmaps = 0;
+
+            if (isKTX)
             {
-                img = genDefaultCheckerboardImage(&w, &h);
+                printf("hello\n");
+                gli::texture gliTex = gli::load_ktx(fileName);
+                gli::gl GL(gli::gl::PROFILE_KTX);
+                gli::gl::format const format = GL.translate(gliTex.format(), gliTex.swizzles());
+                glm::tvec3<GLsizei> extent(gliTex.extent(0));
+                w = extent.x;
+                h = extent.y;
+                numMipmaps = getNumMipMapLevels2D(w, h);
+                glTextureStorage2D(handle, numMipmaps, format.Internal, w, h);
+                glTextureSubImage2D(handle, 0, 0, 0, w, h, format.External, format.Type, gliTex.data(0, 0, 0));
+            }
+            else
+            {
+                uint8_t *img = stbi_load(fileName, &w, &h, nullptr, STBI_rgb_alpha);
                 if (!img)
                 {
-                    throw std::runtime_error("failed to load image %s" + std::string(fileName));
+                    img = genDefaultCheckerboardImage(&w, &h);
+                    if (!img)
+                    {
+                        throw std::runtime_error("failed to load image %s" + std::string(fileName));
+                    }
                 }
+                numMipmaps = getNumMipMapLevels2D(w, h);
+                glTextureStorage2D(handle, numMipmaps, GL_RGBA8, w, h);
+                glTextureSubImage2D(handle, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, img);
+                stbi_image_free((void *)img);
             }
-            // numMipmaps = getNumMipMapLevels2D(w, h);
-            glTextureStorage2D(handle, 1, GL_RGBA8, w, h);
-            glTextureSubImage2D(handle, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, img);
-            stbi_image_free((void *)img);
-            // glGenerateTextureMipmap(handle);
-            // glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, numMipmaps - 1);
-            glTextureParameteri(handle, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+            glGenerateTextureMipmap(handle);
+            glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, numMipmaps - 1);
+            glTextureParameteri(handle, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTextureParameteri(handle, GL_TEXTURE_MAX_ANISOTROPY, 16);
             break;
         }

@@ -45,7 +45,7 @@ vec2 getTexCoord(int i)
 layout (location=0) out vec2 tc;
 layout (location=1) out vec3 normal;
 layout (location=2) out vec3 worldPos;
-
+layout (location=3) out vec3 dir;
 void main()
 {
 	mat4 model = in_Model[gl_DrawID];
@@ -60,4 +60,5 @@ void main()
 
 	normal = normalMatrix  * getNormal(gl_VertexID);
 	worldPos = ( in_Model[gl_DrawID] * vec4(pos, 1.0) ).xyz;
+	dir = pos;
 }
