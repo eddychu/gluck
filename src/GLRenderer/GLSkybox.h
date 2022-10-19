@@ -17,7 +17,7 @@ struct GLSkybox
     GLSkybox(const std::string &envMapFile = "assets/environment/piazza_bologni_1k.hdr",
              const std::string &envIrradianceMapFile = "assets/environment/piazza_bologni_1k_irradiance.hdr",
              const std::string &brdfLutFile = "assets/brdfLUT.ktx")
-        : envMap(GL_TEXTURE_CUBE_MAP, envMapFile.c_str()), envIrradianceMap(GL_TEXTURE_CUBE_MAP, envIrradianceMapFile.c_str()), brdfLut(GL_TEXTURE_2D, brdfLutFile.c_str())
+        : envMap(GL_TEXTURE_CUBE_MAP, envMapFile.c_str()), envIrradianceMap(GL_TEXTURE_CUBE_MAP, envIrradianceMapFile.c_str()), brdfLut(GL_TEXTURE_2D, brdfLutFile.c_str(), GL_CLAMP_TO_EDGE)
     {
         std::vector<GLuint> textures = {
             envMap.handle, envIrradianceMap.handle};

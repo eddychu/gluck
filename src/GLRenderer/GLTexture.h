@@ -53,7 +53,7 @@ struct GLTexture
     GLTexture()
     {
     }
-    GLTexture(GLenum type_, const char *fileName)
+    GLTexture(GLenum type_, const char *fileName, GLenum wrap_mode = GL_REPEAT)
         : type(type_)
     {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -61,8 +61,8 @@ struct GLTexture
         glTextureParameteri(handle, GL_TEXTURE_MAX_LEVEL, 0);
         glTextureParameteri(handle, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTextureParameteri(handle, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTextureParameteri(handle, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTextureParameteri(handle, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTextureParameteri(handle, GL_TEXTURE_WRAP_S, wrap_mode);
+        glTextureParameteri(handle, GL_TEXTURE_WRAP_T, wrap_mode);
 
         const char *ext = strrchr(fileName, '.');
         const bool isKTX = ext && !strcmp(ext, ".ktx");
