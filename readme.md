@@ -1,6 +1,6 @@
 # Gluck 
 
-A simple OpenGL PBR renderer (work in progress).
+An OpenGL PBR renderer (work in progress).
 
 ## Screenshot
 
