@@ -8,10 +8,17 @@ A simple OpenGL PBR renderer (work in progress).
 
 ## Features:
 
--[x] forward rendering
--[x] point light
--[x] image based lighting
--[x] environment mapping
+- [x] forward rendering
+- [x] point light
+- [x] image based lighting
+- [x] environment mapping
+
+
+## Todos:
+
+- [ ] directional/spot light
+- [ ] deferred rendering
+- [ ] animation system
 
 
 ## Reference:
