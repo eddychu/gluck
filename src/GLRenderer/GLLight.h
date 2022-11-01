@@ -22,7 +22,7 @@ struct GLLight
     {
 
         vec4 postion = vec4(light.transform.position(), 1.0);
-        vec4 intenstiy = vec4(light.intennsity, 1.0);
+        vec4 intenstiy = vec4(light.intensity, 1.0);
         LightData data = {.position = postion, .intensity = intenstiy};
 
         glNamedBufferSubData(lightBuffer.handle, 0, LightDataSize, &data);

@@ -23,8 +23,13 @@ public:
     Transform(vec3 position = vec3(0.0f, 0.0f, 0.0f), vec3 rotation = vec3(0.0f, 0.0f, 0.0f), vec3 scale = vec3(1.0f, 1.0f, 1.0f))
         : id(uuid::generate_uuid_v4()), m_position(position), m_rotation(rotation), m_scale(scale)
     {
+        computeMatrix();
+    }
+
+    void computeMatrix()
+    {
         auto t = translate(mat4(1.0f), m_position);
-        auto r = toMat4(quat(rotation));
+        auto r = toMat4(quat(m_rotation));
         auto s = glm::scale(mat4(1.0f), m_scale);
         m_transform = t * r * s;
         m_transformInv = inverse(m_transform);
@@ -47,6 +52,18 @@ public:
     vec3 rotation() const
     {
         return m_rotation;
+    }
+
+    void setPosition(const vec3 &pos)
+    {
+        this->m_position = pos;
+        computeMatrix();
+    }
+
+    void setRot(const vec3 &rot)
+    {
+        m_rotation = rot;
+        computeMatrix();
     }
 
 public:

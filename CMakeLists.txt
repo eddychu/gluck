@@ -1,53 +1,46 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(gluck)
+project(gluck CXX)
+
+
 
 message("building project")
 
-file(GLOB_RECURSE SRC_FILES "src/*.h" "src/*.cpp")
-set(GLAD_SOURCE extern/glad/src/glad.c)
+file(GLOB_RECURSE SRC_FILES main.cpp)
+
 
 include_directories(src)
-add_executable(${PROJECT_NAME} ${SRC_FILES} ${GLAD_SOURCE})
+add_executable(${PROJECT_NAME} ${SRC_FILES})
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
 # add_executable(${PROJECT_NAME} src/main.cpp ${GLAD_SOURCE})
 
 message("Adding glad:")
-target_include_directories(${PROJECT_NAME} PRIVATE extern/glad/include)
+find_package(glad CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE glad::glad)
 
 
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "")
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "")
-set(GLFW_INSTALL OFF CACHE BOOL "")
-set(GLFW_DIR extern/glfw)
 
-add_subdirectory(${GLFW_DIR})
-target_include_directories(${PROJECT_NAME} PRIVATE ${GLFW_DIR}/include)
+find_package(glfw3 CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
-
-# set_property(TARGET glfw PROPERTY FOLDER "extern/glfw")
-# set_property(TARGET update_mappings PROPERTY FOLDER "extern/glfw")
-
 
 
 message("Adding glm:")
 
-set(GLM_DIR extern/glm)
-target_include_directories(${PROJECT_NAME} PRIVATE ${GLM_DIR})
+find_package(glm CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
 
 message("Addding gli") 
-set(GLI_DIR extern/gli)
-add_subdirectory(${GLI_DIR})
-target_include_directories(${PROJECT_NAME} PRIVATE ${GLI_DIR})
+find_package(gli CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE gli)
 
 message("Addding assimp")
-find_package(assimp REQUIRED)
-target_include_directories(${PROJECT_NAME} PRIVATE ${ASSIMP_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${ASSIMP_LIBRARIES})
+find_package(assimp CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
 
-
+find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
+target_include_directories(${PROJECT_NAME} PRIVATE ${TINYGLTF_INCLUDE_DIRS})
 
 add_custom_target(copy-files ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory

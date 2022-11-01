@@ -7,6 +7,7 @@ struct Material
     Material() : id(uuid::generate_uuid_v4())
     {
     }
+    
     string albedoMap;
     string emissiveMap;
     string normalMap;

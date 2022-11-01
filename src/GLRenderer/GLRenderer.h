@@ -61,13 +61,13 @@ public:
 
     void updateMesh(const Mesh &mesh)
     {
-        if (meshes.find(mesh.id) == meshes.end())
-        {
-            const size_t kSizeIndices = sizeof(uint32_t) * mesh.indices.size();
-            const size_t kSizeVertices = sizeof(VertexData) * mesh.vertices.size();
-            GLMesh glMesh(mesh.indices.data(), (uint32_t)kSizeIndices, (float *)mesh.vertices.data(), (uint32_t)kSizeVertices);
-            meshes.insert(pair<string, GLMesh>(mesh.id, std::move(glMesh)));
-        }
+      if (meshes.find(mesh.id) == meshes.end())
+          {
+              const size_t kSizeIndices = sizeof(uint32_t) * mesh.indices.size();
+              const size_t kSizeVertices = sizeof(VertexData) * mesh.vertices.size();
+              GLMesh glMesh(mesh.indices.data(), (uint32_t)kSizeIndices, (float *)mesh.vertices.data(), (uint32_t)kSizeVertices);
+              meshes.insert(pair<string, GLMesh>(mesh.id, std::move(glMesh)));
+          }
     }
 
     void updateTransform(const Transform &transform)

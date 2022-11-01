@@ -3,12 +3,30 @@
 #include <GLFW/glfw3.h>
 #include <stdexcept>
 #include <glm/glm.hpp>
-
+#include <functional>
 using namespace glm;
 
 class Window
 {
 public:
+    static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
+    {
+        auto parent_window = static_cast<Window *>(glfwGetWindowUserPointer(window));
+        parent_window->onMouseButton(button, action, mods);
+    }
+
+    static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+    {
+        auto parent_window = static_cast<Window *>(glfwGetWindowUserPointer(window));
+        parent_window->onKey(key, scancode, action, mods);
+    }
+
+    static void mouse_move_callback(GLFWwindow *window, double x, double y)
+    {
+        auto parent_window = static_cast<Window *>(glfwGetWindowUserPointer(window));
+        parent_window->onMouseMove(x, y);
+    }
+
     Window(int width, int height)
         : m_width(width), m_height(height)
     {
@@ -34,6 +52,11 @@ public:
             glfwDestroyWindow(window);
             throw std::runtime_error("gladloadGL failed.");
         }
+
+        glfwSetWindowUserPointer(window, this);
+        glfwSetMouseButtonCallback(window, mouse_button_callback);
+        glfwSetKeyCallback(window, key_callback);
+        glfwSetCursorPosCallback(window, mouse_move_callback);
     }
 
     bool shouldClose()
@@ -78,4 +101,8 @@ public:
     GLFWwindow *window;
     int m_width;
     int m_height;
+
+    std::function<void(int, int, int)> onMouseButton;
+    std::function<void(int, int, int, int)> onKey;
+    std::function<void(double, double)> onMouseMove;
 };
