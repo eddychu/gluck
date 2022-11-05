@@ -42,8 +42,10 @@ int main()
     bool mouseHolding = false;
     double lastMouseX = 0.0;
     double lastMouseY = 0.0;
-    float pitch = 0.0f;
-    float yaw = 0.0f;
+    float xoffset = 0.0;
+    float yoffset = 0.0;
+
+
     window.onMouseButton = [&](int button, int action, int mod)
     {
         if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
@@ -77,14 +79,37 @@ int main()
     {
         if (mouseHolding)
         {
-            float dx = static_cast<float>(x - lastMouseX);
-            float dy = static_cast<float>(y - lastMouseY);
-            yaw += 0.001 * dx;
-            pitch += 0.001 * dy;
 
-            pitch = glm::clamp(pitch, -glm::pi<float>() + 0.1f, glm::pi<float>() - 0.1f);
+            vec3 offset = camera.transform.position() - model.transform.position();
+            float radius = length(offset);
+            float theta = 0.0;
+            float phi = 0.0;
+            if (fabs(radius) > glm::epsilon<float>())
+            {
+                theta = atan2(offset.x, offset.z);
+                float v = glm::clamp(offset.y / radius, -1.0f, 1.0f);
+                phi = acos(v);
+            }
+
+            xoffset -= static_cast<float>(x - lastMouseX) * glm::pi<float>() * 2.0f / height;
+            yoffset -= static_cast<float>(y - lastMouseY) * glm::pi<float>() * 2.0f / height;
+
+            theta += xoffset;
+            phi += yoffset;
+
+            phi = glm::clamp(phi, 0.001f, glm::pi<float>() - 0.001f);
+            float sinPhiRadius = sin(phi) * radius;
+            auto new_x = sinPhiRadius * sin(theta);
+            auto new_y = cos(phi) * radius;
+            auto new_z = sinPhiRadius * cos(theta);
+           
+            auto newPos = vec3(new_x, new_y, new_z);
+            camera.transform.setPosition(newPos);
+            camera.look(vec3(0.0, 0.0f, 0.0f));
             lastMouseX = x;
             lastMouseY = y;
+            xoffset = 0.0;
+            yoffset = 0.0;
         }
     };
 
@@ -92,15 +117,15 @@ int main()
     {
         window.poolEvents();
 
-        auto radius = length(camera.transform.position() - scene.model.transform.position());
+        // auto radius = length(camera.transform.position() - scene.model.transform.position());
 
-        camera.transform.setRot(glm::vec3(pitch, yaw, 0.0));
+        // camera.transform.setRot(glm::vec3(pitch, yaw, 0.0));
 
-         auto euler = scene.model.transform.rotation();
-         euler.y = glfwGetTime() * 0.5;
+        auto euler = scene.model.transform.rotation();
+        euler.y = glfwGetTime() * 0.5;
 
-         Transform transform(vec3(0.0f, 0.0f, 0.0f), euler, vec3(1.0f, 1.0f, 1.0f));
-         scene.model.transform = transform;
+        Transform transform(vec3(0.0f, 0.0f, 0.0f), euler, vec3(1.0f, 1.0f, 1.0f));
+        scene.model.transform = transform;
 
         renderer.render(scene, camera);
 

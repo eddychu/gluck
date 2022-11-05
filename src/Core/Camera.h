@@ -2,6 +2,7 @@
 
 #include <Core/Transform.h>
 #include <Common/uuid.h>
+using namespace glm;
 class Camera
 {
 public:
@@ -12,6 +13,12 @@ public:
         auto iview = inverse(view);
         transform = Transform::fromWorldMat(iview);
         projection = perspective(glm::radians(fov), aspect, 1.0f, 1000.0f);
+    }
+
+    void look(vec3 target) {
+        auto view = lookAt(transform.position(), target, vec3(0.0f, 1.0f, 0.0f));
+        auto iview = inverse(view);
+        transform = Transform::fromWorldMat(iview);
     }
 
     mat4 getView() const
